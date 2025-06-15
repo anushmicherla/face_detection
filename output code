@@ -1,0 +1,38 @@
+from ultralytics import YOLO
+import cv2
+
+# Load the model
+model = YOLO("yolov8n-face-lindevs.pt")  # ✅ Your .pt file
+
+# Load video
+video_path = "video.mp4"
+cap = cv2.VideoCapture(video_path)
+fps = cap.get(cv2.CAP_PROP_FPS)
+w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+# Output video writer
+out = cv2.VideoWriter("output_with_faces.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+
+# Frame-by-frame inference and drawing
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    # Run YOLOv8 inference
+    results = model(frame, verbose=False)[0]
+
+    # Draw bounding boxes and confidence
+    for box in results.boxes:
+        x1, y1, x2, y2 = map(int, box.xyxy[0])
+        conf = float(box.conf[0])
+        label = f"Person: {conf:.2f}"
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.putText(frame, label, (x1, max(20, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+
+    out.write(frame)
+
+cap.release()
+out.release()
+print("✅ Output video saved as 'output_with_faces.mp4'")
